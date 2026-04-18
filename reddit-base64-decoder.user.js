@@ -13,9 +13,18 @@
  
     function decodeBase64(str) {
         try {
+            const binary = atob(str);
+    
+            // check rapide : est-ce que c’est du texte ASCII propre ?
+            if (/^[\x20-\x7E]+$/.test(binary)) {
+                return binary;
+            }
+    
+            // fallback UTF-8
             return new TextDecoder().decode(
-                Uint8Array.from(atob(str), c => c.charCodeAt(0))
+                Uint8Array.from(binary, c => c.charCodeAt(0))
             );
+    
         } catch {
             return null;
         }
@@ -23,7 +32,11 @@
      
     function processNode(node) {
         if (node.nodeType !== Node.TEXT_NODE) return;
-    
+
+        // ignore si déjà traité
+        if (node.parentNode && node.parentNode.dataset.decoded) return;
+        node.parentNode.dataset.decoded = "true";
+     
         const text = node.nodeValue;
         const matches = [...text.matchAll(base64Regex)];
     
@@ -36,12 +49,19 @@
         for (const m of matches) {
             const match = m[0];
             const index = m.index;
-    
+        
             // texte avant match
             frag.appendChild(
                 document.createTextNode(text.slice(lastIndex, index))
             );
-    
+        
+            // ✅ ICI
+            if (/https?:\/\//.test(match)) {
+                frag.appendChild(document.createTextNode(match));
+                lastIndex = index + match.length;
+                continue;
+            }
+        
             const decoded = decodeBase64(match);
     
             if (decoded) {
