@@ -20,31 +20,32 @@
             return null;
         }
     }
- 
+     
     function processNode(node) {
         if (node.nodeType !== Node.TEXT_NODE) return;
     
         const text = node.nodeValue;
-        const matches = text.match(base64Regex);
-        if (!matches) return;
+        const matches = [...text.matchAll(base64Regex)];
     
-        let newNode = document.createDocumentFragment();
+        if (matches.length === 0) return;
+    
+        const frag = document.createDocumentFragment();
     
         let lastIndex = 0;
     
-        for (const match of matches) {
-            const index = text.indexOf(match, lastIndex);
-            if (index === -1) continue;
+        for (const m of matches) {
+            const match = m[0];
+            const index = m.index;
     
-            // texte avant
-            newNode.appendChild(
+            // texte avant match
+            frag.appendChild(
                 document.createTextNode(text.slice(lastIndex, index))
             );
     
             const decoded = decodeBase64(match);
     
             if (decoded) {
-                const isURL = /^https?:\/\/[^\s]+$/.test(decoded);
+                const isURL = /^https?:\/\/\S+$/.test(decoded);
     
                 if (isURL) {
                     const a = document.createElement("a");
@@ -52,39 +53,47 @@
                     a.textContent = decoded;
                     a.target = "_blank";
                     a.style.color = "#4dabf7";
-                    newNode.appendChild(a);
+                    frag.appendChild(a);
                 } else {
-                    newNode.appendChild(document.createTextNode(decoded));
+                    frag.appendChild(document.createTextNode(decoded));
                 }
             } else {
-                newNode.appendChild(document.createTextNode(match));
+                frag.appendChild(document.createTextNode(match));
             }
     
             lastIndex = index + match.length;
         }
     
         // reste du texte
-        newNode.appendChild(
+        frag.appendChild(
             document.createTextNode(text.slice(lastIndex))
         );
     
-        node.parentNode.replaceChild(newNode, node);
+        node.parentNode.replaceChild(frag, node);
     }
  
-    function scan(element) {
-        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    function scan(root) {
+        const walker = document.createTreeWalker(
+            root,
+            NodeFilter.SHOW_TEXT
+        );
+    
         let node;
+        const nodes = [];
+    
         while (node = walker.nextNode()) {
-            processNode(node);
+            nodes.push(node);
         }
+    
+        nodes.forEach(processNode);
     }
  
     const observer = new MutationObserver(mutations => {
-        mutations.forEach(m => {
-            m.addedNodes.forEach(node => {
+        for (const m of mutations) {
+            for (const node of m.addedNodes) {
                 scan(node);
-            });
-        });
+            }
+        }
     });
  
     observer.observe(document.body, { childList: true, subtree: true });
