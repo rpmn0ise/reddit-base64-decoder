@@ -6,11 +6,7 @@ Userscript that automatically decodes Base64 strings on Reddit and replaces them
 
 ## Install
 
-👉 **Click to install:**
-
-
-[https://raw.githubusercontent.com/USERNAME/REPO/main/reddit-base64-decoder.user.js
-](https://github.com/rpmn0ise/reddit-base64-decoder/raw/refs/heads/main/reddit-base64-decoder.user.js)  
+👉 **[Click to install](https://github.com/rpmn0ise/reddit-base64-decoder/raw/refs/heads/main/reddit-base64-decoder.user.js)**
 
 *(Requires Violentmonkey or Tampermonkey)*
 
