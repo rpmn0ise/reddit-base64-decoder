@@ -9,60 +9,66 @@
 // ==/UserScript==
  
 (function() {
-    const base64Regex = /\b[A-Za-z0-9+/]{20,}={0,2}\b/g;
+    const base64Regex = /[A-Za-z0-9+/]{20,}={0,2}/g;
  
     function decodeBase64(str) {
         try {
-            return decodeURIComponent(escape(atob(str)));
+            return new TextDecoder().decode(
+                Uint8Array.from(atob(str), c => c.charCodeAt(0))
+            );
         } catch {
             return null;
         }
     }
  
     function processNode(node) {
-        if (node.nodeType === Node.TEXT_NODE) {
-            const matches = node.nodeValue.match(base64Regex);
-            if (!matches) return;
- 
-            let parent = node.parentNode;
-            let text = node.nodeValue;
- 
-            matches.forEach(match => {
-                const decoded = decodeBase64(match);
-                if (!decoded || decoded.length < 5) return;
- 
-                // Vérifie si c'est une URL
-                let isURL = /^https?:\/\/[^\s]+$/.test(decoded);
- 
-                let replacement;
- 
+        if (node.nodeType !== Node.TEXT_NODE) return;
+    
+        const text = node.nodeValue;
+        const matches = text.match(base64Regex);
+        if (!matches) return;
+    
+        let newNode = document.createDocumentFragment();
+    
+        let lastIndex = 0;
+    
+        for (const match of matches) {
+            const index = text.indexOf(match, lastIndex);
+            if (index === -1) continue;
+    
+            // texte avant
+            newNode.appendChild(
+                document.createTextNode(text.slice(lastIndex, index))
+            );
+    
+            const decoded = decodeBase64(match);
+    
+            if (decoded) {
+                const isURL = /^https?:\/\/[^\s]+$/.test(decoded);
+    
                 if (isURL) {
-                    // crée un lien cliquable
                     const a = document.createElement("a");
                     a.href = decoded;
                     a.textContent = decoded;
                     a.target = "_blank";
-                    a.style.color = "#4dabf7"; // optionnel
-                    replacement = a;
+                    a.style.color = "#4dabf7";
+                    newNode.appendChild(a);
                 } else {
-                    // sinon texte simple
-                    replacement = document.createTextNode(decoded);
+                    newNode.appendChild(document.createTextNode(decoded));
                 }
- 
-                // remplace dans le texte
-                const parts = text.split(match);
-                const frag = document.createDocumentFragment();
- 
-                parts.forEach((part, index) => {
-                    frag.appendChild(document.createTextNode(part));
-                    if (index < parts.length - 1) {
-                        frag.appendChild(replacement.cloneNode(true));
-                    }
-                });
- 
-                parent.replaceChild(frag, node);
-            });
+            } else {
+                newNode.appendChild(document.createTextNode(match));
+            }
+    
+            lastIndex = index + match.length;
         }
+    
+        // reste du texte
+        newNode.appendChild(
+            document.createTextNode(text.slice(lastIndex))
+        );
+    
+        node.parentNode.replaceChild(newNode, node);
     }
  
     function scan(element) {
