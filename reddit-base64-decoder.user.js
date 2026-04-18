@@ -11,11 +11,24 @@
 (function() {
     const base64Regex = /[A-Za-z0-9+/]{20,}={0,2}/g;
  
+    function isValidBase64(str) {
+        try {
+            const decoded = atob(str);
+    
+            // re-encode pour vérifier intégrité
+            return btoa(decoded).replace(/=+$/, '') === str.replace(/=+$/, '');
+        } catch {
+            return false;
+        }
+    }
+    
     function decodeBase64(str) {
+        if (!isValidBase64(str)) return null;
+    
         try {
             const binary = atob(str);
     
-            // check rapide : est-ce que c’est du texte ASCII propre ?
+            // ASCII direct (cas URL)
             if (/^[\x20-\x7E]+$/.test(binary)) {
                 return binary;
             }
