@@ -2,12 +2,11 @@
 
 Userscript that automatically decodes Base64 strings on Reddit and replaces them with readable content.
 
-Avant : 
-<img width="917" height="402" alt="image" src="https://github.com/user-attachments/assets/20507b43-4fe1-4137-b217-3c404f5ed035" />
+## Aperçu (Before / After)
 
-Après : 
-<img width="914" height="411" alt="image" src="https://github.com/user-attachments/assets/b125ae51-0957-4f2d-b6ad-b656f2cbdf92" />
-<img width="920" height="494" alt="image" src="https://github.com/user-attachments/assets/28cb0cb5-1867-45dd-9caa-9356fede65f0" />
+| Avant | Après |
+| :---: | :---: |
+| <img width="450" alt="Avant" src="https://github.com/user-attachments/assets/20507b43-4fe1-4137-b217-3c404f5ed035" /> | <img width="450" alt="Après 1" src="https://github.com/user-attachments/assets/b125ae51-0957-4f2d-b6ad-b656f2cbdf92" /><br><br><img width="450" alt="Après 2" src="https://github.com/user-attachments/assets/28cb0cb5-1867-45dd-9caa-9356fede65f0" /> |
 
 
 ---
