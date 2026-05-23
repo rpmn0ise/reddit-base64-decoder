@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Reddit — Base64 Decoder & URL Linker
 // @namespace    https://github.com/rpmn0ise/reddit-base64-decoder
-// @version      2.0.0
+// @version      2.2.0
 // @description  Décode automatiquement les chaînes Base64 et rend les URLs cliquables dans les commentaires et posts Reddit
 // @author       rpmn0ise
 // @match        https://www.reddit.com/*
@@ -20,8 +20,8 @@
 
   const CONFIG = {
     AUTO_EXPAND:     false,  // true = affiche le décodé directement sans cliquer
-    MIN_LENGTH:      16,     // longueur minimale d'une chaîne pour tenter le décodage
-    PRINTABLE_RATIO: 0.6,    // ratio min de caractères imprimables dans le résultat
+    MIN_LENGTH:      24,     // longueur minimale d'une chaîne SOURCE pour tenter le décodage
+    PRINTABLE_RATIO: 0.65,   // ratio min de caractères imprimables dans le résultat (plus strict)
     DEBOUNCE_MS:     500,    // délai avant rescan après mutation DOM (ms)
     SHOW_BADGE:      true,   // affiche un compteur flottant en bas à droite
   };
@@ -36,8 +36,19 @@
   GM_addStyle(`
     /* ── Wrapper Base64 ── */
     .b64-wrapper {
-      display: inline;
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 2px;
       position: relative;
+    }
+
+    /* ── Groupe boutons (toggle + copy) — toujours visible ── */
+    .b64-controls {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
     }
 
     /* ── Original grisé ── */
@@ -61,30 +72,43 @@
     }
 
     /* ── Boutons (toggle + copy) ── */
+    /* !important partout pour contrer les overrides agressifs de Reddit */
     .b64-btn {
-      display: inline-block;
-      font-size: 0.7em;
-      font-weight: 600;
-      cursor: pointer;
-      background: none;
-      border: 1px solid #ff6314;
-      color: #ff6314;
-      border-radius: 3px;
-      padding: 1px 6px;
-      margin-left: 3px;
-      vertical-align: middle;
-      user-select: none;
-      transition: background 0.15s, color 0.15s;
-      line-height: 1.6;
+      display: inline-block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      font-size: 0.7em !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      border: 1px solid #ff6314 !important;
+      color: #ff6314 !important;
+      border-radius: 3px !important;
+      padding: 1px 6px !important;
+      margin: 0 0 0 3px !important;
+      vertical-align: middle !important;
+      user-select: none !important;
+      transition: background 0.15s, color 0.15s !important;
+      line-height: 1.6 !important;
+      font-family: system-ui, sans-serif !important;
+      text-transform: none !important;
+      letter-spacing: normal !important;
+      box-shadow: none !important;
+      min-width: unset !important;
+      height: auto !important;
+      width: auto !important;
+      position: static !important;
+      pointer-events: auto !important;
     }
     .b64-btn:hover {
-      background: #ff6314;
-      color: #fff;
+      background: #ff6314 !important;
+      color: #fff !important;
     }
     .b64-btn.copied {
-      background: #2ecc71;
-      border-color: #2ecc71;
-      color: #fff;
+      background: #2ecc71 !important;
+      border-color: #2ecc71 !important;
+      color: #fff !important;
     }
 
     /* ── Contenu décodé court (inline) ── */
@@ -192,8 +216,8 @@
 
   // ─── Regex ────────────────────────────────────────────────────────────────
 
-  // Base64 standard : exclut les segments qui ressemblent à des chemins d'URL (précédés par /)
-  const BASE64_RE = /(?<![A-Za-z0-9+/=\-_./])([A-Za-z0-9+/]{20,}={0,2})(?![A-Za-z0-9+/=\-_])/g;
+  // Base64 standard : min 24 chars source, exclut les segments d'URL
+  const BASE64_RE = /(?<![A-Za-z0-9+/=\-_./])([A-Za-z0-9+/]{24,}={0,2})(?![A-Za-z0-9+/=\-_])/g;
 
   // Base64url (JWT, etc.) : utilise - et _ au lieu de + et /
   const BASE64URL_RE = /(?<![A-Za-z0-9\-_.])([A-Za-z0-9\-_]{16,})(?![A-Za-z0-9\-_.])/g;
@@ -208,6 +232,9 @@
    * Retourne { decoded, isJson } ou null si invalide/illisible.
    */
   function tryDecode(str) {
+    // Filtre longueur minimale sur la chaîne SOURCE
+    if (str.length < CONFIG.MIN_LENGTH) return null;
+
     // Normaliser base64url → base64 standard
     const normalized = str.replace(/-/g, '+').replace(/_/g, '/');
     const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
@@ -318,6 +345,10 @@
     label.className = 'b64-label';
     label.textContent = isJson ? '⚙ b64/json' : '⚙ b64';
 
+    // Conteneur boutons (toujours visible, hors du flux du décodé)
+    const controls = document.createElement('span');
+    controls.className = 'b64-controls';
+
     // Bouton toggle
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'b64-btn';
@@ -341,6 +372,9 @@
       });
     });
 
+    controls.appendChild(toggleBtn);
+    controls.appendChild(copyBtn);
+
     // Contenu décodé
     const decodedEl = document.createElement(isLong ? 'div' : 'span');
     decodedEl.className = isLong ? 'b64-decoded-block' : 'b64-decoded-inline';
@@ -360,8 +394,7 @@
 
     wrapper.appendChild(originalEl);
     wrapper.appendChild(label);
-    wrapper.appendChild(toggleBtn);
-    wrapper.appendChild(copyBtn)
+    wrapper.appendChild(controls);
     wrapper.appendChild(decodedEl);
 
     return wrapper;
