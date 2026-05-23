@@ -193,7 +193,7 @@
   // ─── Regex ────────────────────────────────────────────────────────────────
 
   // Base64 standard : exclut les segments qui ressemblent à des chemins d'URL (précédés par /)
-  const BASE64_RE = /(?<![A-Za-z0-9+/=\-_./])([A-Za-z0-9+/]{16,}={0,2})(?![A-Za-z0-9+/=\-_])/g;
+  const BASE64_RE = /(?<![A-Za-z0-9+/=\-_./])([A-Za-z0-9+/]{20,}={0,2})(?![A-Za-z0-9+/=\-_])/g;
 
   // Base64url (JWT, etc.) : utilise - et _ au lieu de + et /
   const BASE64URL_RE = /(?<![A-Za-z0-9\-_.])([A-Za-z0-9\-_]{16,})(?![A-Za-z0-9\-_.])/g;
@@ -361,7 +361,7 @@
     wrapper.appendChild(originalEl);
     wrapper.appendChild(label);
     wrapper.appendChild(toggleBtn);
-    wrapper.appendChild(copyBtn);
+    wrapper.appendChild(copyBtn)
     wrapper.appendChild(decodedEl);
 
     return wrapper;
